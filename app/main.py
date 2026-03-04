@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import redis
+import json
 
 app = FastAPI()
 
@@ -12,7 +13,7 @@ async def startup_event():
     r.set("ticket_stock", 10)
 
 @app.post("/buy")
-async def buy_ticket():
+async def buy_ticket(user_id: str = "user_default"):
     # 讀取 Lua 腳本
     lua_script = open("app/scripts/buy_ticket.lua", "r").read()
 
@@ -20,7 +21,9 @@ async def buy_ticket():
     result = r.eval(lua_script, 1, "ticket_stock")
 
     if result == 1:
-        return {"status": "success", "message": "搶票成功!"}
+        order_data = json.dumps({"user_id": user_id, "event": "concert_AAA"})
+        r.lpush("order_queue", order_data)
+        return {"status": "success", "message": "搶票成功，訂單處理中"}
     else:
         return {"status": "fail", "message": "已售罄"}
 
