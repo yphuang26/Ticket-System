@@ -32,7 +32,7 @@ services:
     ports:
       - "5432:5432"
   k6:
-    image: loadimpact/k6:latest
+    image: grafana/k6:latest
     volumes:
       - .:/code
     depends_on:

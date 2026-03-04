@@ -4,7 +4,7 @@ import json
 
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
-def process_order():
+def process_orders():
     print("Worker 啟動，等待訂單...")
     while True:
         order = r.rpop("order_queue")
@@ -16,4 +16,4 @@ def process_order():
             time.sleep(1) # 等待新訂單
 
 if __name__ == "__main__":
-    process_order()
+    process_orders()
