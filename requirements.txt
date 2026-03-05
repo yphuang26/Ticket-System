@@ -3,3 +3,4 @@ uvicorn[standard]
 redis
 sqlalchemy
 psycopg2-binary
+prometheus-fastapi-instrumentator
