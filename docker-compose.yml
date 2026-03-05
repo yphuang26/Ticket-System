@@ -6,16 +6,20 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - redis
-      - db
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
 
   worker:
     build: .
     working_dir: /code
-    command: python -u app/worker.py
+    command: python -u -m app.worker
     depends_on:
-      - redis
-      - db
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
 
   redis:
     image: redis:latest
@@ -28,6 +32,11 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres_pass
       - POSTGRES_DB=ticket_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ticket_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     ports:
       - "5432:5432"
 
