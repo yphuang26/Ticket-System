@@ -18,6 +18,9 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            mkdir -p ~/.ssh
+            grep -q "github.com" ~/.ssh/known_hosts 2>/dev/null || ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
             REPO_DIR=~/Ticket-System
             if [ ! -d "$REPO_DIR/.git" ]; then
               git clone git@github.com:yphuang26/Ticket-System.git "$REPO_DIR"
@@ -25,4 +28,4 @@ jobs:
 
             cd "$REPO_DIR"
             git pull origin main
-            docker-compose up -d --build
+            docker compose up -d --build
