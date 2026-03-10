@@ -8,7 +8,7 @@ export const options = {
 };
 
 export default function() {
-    const url = 'http://web:8000/buy';
+    const url = 'https://pingdemo.duckdns.org/buy';
 
     // 發送 POST 請求搶票
     const res = http.post(url);
