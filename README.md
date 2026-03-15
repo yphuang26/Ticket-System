@@ -8,7 +8,9 @@
 
 技術棧：**FastAPI + Redis + PostgreSQL + Prometheus + Grafana + k6 + GitHub Actions (CI/CD)**
 
----
+## 系統架構圖
+
+![系統架構圖](system-architecture.png)
 
 ## 系統設計與技術亮點
 
@@ -30,8 +32,6 @@
   - 使用 **GitHub Actions** 將專案自動部署到 **AWS EC2**
   - 整合 Docker / docker-compose，方便一鍵啟動全套服務
 
----
-
 ## 專案架構概覽
 
 - **`app/main.py`**：FastAPI 服務
@@ -42,8 +42,6 @@
 - **`scripts/test_buy.js`**：k6 壓力測試腳本
   - 模擬大量並發使用者呼叫 `/buy`
 - **`docker-compose.yml`**：一鍵啟動 web / worker / Redis / PostgreSQL / Prometheus / Grafana / k6 服務
-
----
 
 ## 快速開始 (Local)
 
@@ -77,8 +75,6 @@ docker compose run --rm k6
 docker compose run --rm k6 run /code/scripts/test_buy.js
 ```
 
----
-
 ## API 範例
 
 - **搶票**
@@ -101,8 +97,6 @@ curl "http://localhost:8000/stock"
 { "remaining_stock": 7 }
 ```
 
----
-
 ## 壓力測試與結果（TODO）
 
 你可以使用 k6 對 `/buy` 進行高併發壓測，並在：
@@ -114,8 +108,6 @@ curl "http://localhost:8000/stock"
   - Redis / DB 負載變化
 
 建議你把實驗數據與截圖補在這一節，當作作品集的重點說明。
-
----
 
 ## 可以延伸的方向（Future Work）
 
