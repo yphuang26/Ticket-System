@@ -1,8 +1,10 @@
 name: Deploy to EC2
 
 on:
-  push:
-    branches: [ main ]
+  # push 觸發已暫停，暫停自動部署到 AWS
+  # push:
+  #   branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
