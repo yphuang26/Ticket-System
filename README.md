@@ -75,6 +75,39 @@ docker compose run --rm k6
 docker compose run --rm k6 run /code/scripts/test_buy.js
 ```
 
+### 3. 將 k6 結果寫入 Prometheus，並用 Grafana 顯示
+
+本專案的 `prometheus` 已在 `docker-compose.yml` 啟用 `--web.enable-remote-write-receiver`，可直接接收 k6 metrics。
+
+先確保監控服務已啟動：
+
+```bash
+docker compose up -d prometheus grafana
+```
+
+再用 Prometheus Remote Write 模式執行 k6：
+
+```bash
+docker compose run --rm \
+  -e K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write \
+  k6 run -o experimental-prometheus-rw /code/scripts/test_buy.js
+```
+
+接著在 Grafana 設定 Prometheus Data Source（URL: `http://prometheus:9090`），即可建立 dashboard。
+
+若在 Grafana 找不到 `rate_limited_responses`、`http_reqs`、`http_req_failed`，改查 `k6_` 前綴名稱（k6 remote write 匯入 Prometheus 時常見）。
+
+建議先加這幾個查詢：
+
+- 限流命中速率（429）：
+  - `rate(k6_rate_limited_responses[1m])`
+- 請求速率（RPS）：
+  - `rate(k6_http_reqs[1m])`
+- 失敗率（k6 將 429 視為 failed，屬預期）：
+  - `avg(k6_http_req_failed)`
+- 延遲 P95：
+  - `histogram_quantile(0.95, sum(rate(k6_http_req_duration_bucket[1m])) by (le))`
+
 ## API 範例
 
 - **搶票**
