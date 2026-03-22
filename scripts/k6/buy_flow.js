@@ -5,8 +5,11 @@ import { Counter } from 'k6/metrics';
 /** 供 Nginx 限流情境：在 threshold 使用 rate_limited_responses */
 export const rateLimitedResponses = new Counter('rate_limited_responses');
 
-function postBuy(baseUrl) {
-    return http.post(`${baseUrl.replace(/\/$/, '')}/buy`);
+/** 單次 POST /buy；逾時視為請求失敗（預設 60s，與可接受延遲 SLA 一致） */
+function postBuy(baseUrl, opts = {}) {
+    const url = `${baseUrl.replace(/\/$/, '')}/buy`;
+    const timeout = opts.timeout ?? (__ENV.BUY_HTTP_TIMEOUT || '60s');
+    return http.post(url, null, { timeout });
 }
 
 /**

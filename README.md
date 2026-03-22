@@ -42,6 +42,7 @@
 - **`scripts/k6/buy_flow.js`**：共用的 `/buy` 請求流程（供下列入口腳本 `import`）
 - **`scripts/k6/test_nginx_rate_limit.js`**：經 **Nginx** 壓測，驗證 `limit_req` / 429
 - **`scripts/k6/test_backend_capacity.js`**：直連 **web:8000**，測後端吞吐（不經 Nginx 限流）
+- **`scripts/k6/test_backend_ramp_to_breakpoint.js`**：分階段提高 VU，觀察從近乎全成功到開始出錯（可選失敗率達標自動中止）
 - **`docker-compose.yml`**：一鍵啟動 web / worker / Redis / PostgreSQL / Prometheus / Grafana / k6 服務
 
 ## 快速開始 (Local)
@@ -78,6 +79,15 @@ docker compose run --rm k6 run /code/scripts/k6/test_nginx_rate_limit.js
 
 # 後端極限（繞過 Nginx）
 docker compose run --rm k6 run /code/scripts/k6/test_backend_capacity.js
+
+# 逐步加壓，找成功 → 開始出錯的區間（繞過 Nginx）
+docker compose run --rm k6 run /code/scripts/k6/test_backend_ramp_to_breakpoint.js
+```
+
+`buy_flow.js` 預設對每個 `POST /buy` 使用 **60s HTTP 逾時**（可接受延遲 SLA）；超過即視為請求失敗。若要改門檻：
+
+```bash
+docker compose run --rm -e BUY_HTTP_TIMEOUT=45s k6 run /code/scripts/k6/test_backend_ramp_to_breakpoint.js
 ```
 
 ### 3. 將 k6 結果寫入 Prometheus，並用 Grafana 顯示
