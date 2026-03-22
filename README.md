@@ -21,7 +21,7 @@
 - **非同步持久化（提升吞吐量）**
   - API 收到成功搶票請求後，只負責把訂單寫入 Redis `order_queue`
   - **背景 worker** 從 queue 取出訂單，再寫入 PostgreSQL
-  - 達成 **「前台快回應，後台慢慢寫 DB」** 的解耦設計
+  - 達成**API 先回應，資料庫由背景非同步寫入**的解耦
 
 - **監控與可觀測性 (Observability)**
   - 透過 `prometheus_fastapi_instrumentator` 自動導出 FastAPI 指標
@@ -39,8 +39,9 @@
   - `GET /stock`：查詢當前剩餘票數
 - **`app/worker.py`**：背景 worker
   - 從 `order_queue` 消費訂單並寫入 PostgreSQL
-- **`scripts/test_buy.js`**：k6 壓力測試腳本
-  - 模擬大量並發使用者呼叫 `/buy`
+- **`scripts/k6/buy_flow.js`**：共用的 `/buy` 請求流程（供下列入口腳本 `import`）
+- **`scripts/k6/test_nginx_rate_limit.js`**：經 **Nginx** 壓測，驗證 `limit_req` / 429
+- **`scripts/k6/test_backend_capacity.js`**：直連 **web:8000**，測後端吞吐（不經 Nginx 限流）
 - **`docker-compose.yml`**：一鍵啟動 web / worker / Redis / PostgreSQL / Prometheus / Grafana / k6 服務
 
 ## 快速開始 (Local)
@@ -69,10 +70,14 @@ docker compose up -d
 docker compose run --rm k6
 ```
 
-或使用原本腳本方式：
+或使用入口腳本（擇一）：
 
 ```bash
-docker compose run --rm k6 run /code/scripts/test_buy.js
+# Nginx 限流 / 同一來源大量請求
+docker compose run --rm k6 run /code/scripts/k6/test_nginx_rate_limit.js
+
+# 後端極限（繞過 Nginx）
+docker compose run --rm k6 run /code/scripts/k6/test_backend_capacity.js
 ```
 
 ### 3. 將 k6 結果寫入 Prometheus，並用 Grafana 顯示
@@ -90,8 +95,10 @@ docker compose up -d prometheus grafana
 ```bash
 docker compose run --rm \
   -e K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write \
-  k6 run -o experimental-prometheus-rw /code/scripts/test_buy.js
+  k6 run -o experimental-prometheus-rw /code/scripts/k6/test_nginx_rate_limit.js
 ```
+
+（測後端極限時可改為 `test_backend_capacity.js`。）
 
 接著在 Grafana 設定 Prometheus Data Source（URL: `http://prometheus:9090`），即可建立 dashboard。
 
