@@ -1,0 +1,41 @@
+body {
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background: #f0f2f5;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 48px 64px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  color: #333;
+}
+
+.stock {
+  font-size: 80px;
+  font-weight: bold;
+  color: #e74c3c;
+  margin: 24px 0;
+}
+
+.label {
+  font-size: 16px;
+  color: #888;
+}
+
+.updated {
+  font-size: 13px;
+  color: #bbb;
+  margin-top: 16px;
+}

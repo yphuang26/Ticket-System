@@ -1,6 +1,8 @@
 import json
 import redis
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.logger import get_logger
 
@@ -9,9 +11,16 @@ app = FastAPI()
 # 初始化監控儀器
 Instrumentator().instrument(app).expose(app)
 
+# 掛載靜態檔案（HTML / CSS / JS）
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 # 連接 Redis
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 logger = get_logger()
+
+# 預載並快取 Lua script（使用 EVALSHA，避免每次請求重新讀檔）
+with open("app/scripts/buy_ticket.lua", "r", encoding="utf-8") as _f:
+    _buy_script = r.register_script(_f.read())
 
 
 @app.on_event("startup")
@@ -20,14 +29,21 @@ async def startup_event():
     r.set("ticket_stock", 10)
     logger.info("服務啟動完成，ticket_stock 初始化為 10")
 
+@app.get("/")
+async def index():
+    return FileResponse("app/static/index.html")
+
+@app.post("/admin/reset")
+async def reset_stock(stock: int = Query(default=10, ge=0)):
+    """重置庫存，供壓測 setup 使用。生產環境應加上認證保護。"""
+    r.set("ticket_stock", stock)
+    logger.info(f"庫存已重置為 {stock}")
+    return {"status": "ok", "ticket_stock": stock}
+
 @app.post("/buy")
 async def buy_ticket(user_id: str = "user_default"):
-    # 讀取 Lua 腳本
-    with open("app/scripts/buy_ticket.lua", "r", encoding="utf-8") as script_file:
-        lua_script = script_file.read()
-
-    # 執行 Lua 腳本 (確保原子性)
-    result = r.eval(lua_script, 1, "ticket_stock")
+    # 執行預載的 Lua 腳本 (確保原子性，EVALSHA 避免重複傳輸腳本)
+    result = _buy_script(keys=["ticket_stock"])
 
     if result == 1:
         order_data = json.dumps({"user_id": user_id, "event": "concert_AAA"})
