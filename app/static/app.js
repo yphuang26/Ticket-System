@@ -1,10 +1,10 @@
+// 每 3 秒輪詢 /stock，即時顯示剩餘票數
 const REFRESH_INTERVAL_MS = 3000;
 
 async function fetchStock() {
   try {
     const res = await fetch('/stock');
     const data = await res.json();
-
     document.getElementById('stock').textContent = data.remaining_stock;
     document.getElementById('updated').textContent =
       '最後更新：' + new Date().toLocaleTimeString('zh-TW');

@@ -46,6 +46,7 @@ async def buy_ticket(user_id: str = "user_default"):
     result = _buy_script(keys=["ticket_stock"])
 
     if result == 1:
+        # 扣庫存成功：推入佇列，由 worker 非同步寫入 DB，不阻塞 API 回應
         order_data = json.dumps({"user_id": user_id, "event": "concert_AAA"})
         r.lpush("order_queue", order_data)
         logger.info("搶票成功", extra={"user_id": user_id})

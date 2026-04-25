@@ -10,7 +10,7 @@ r = redis.Redis(host='redis', port=6379, decode_responses=True)
 logger = get_logger()
 
 def process_orders():
-    # Postgres 容器剛啟動時可能尚未就緒，這裡加入重試避免 worker 直接退出
+    # PostgreSQL 啟動後可能需要數秒才就緒，retry 直到連線成功
     while True:
         try:
             init_db()
@@ -22,7 +22,9 @@ def process_orders():
     logger.info("Worker 啟動，等待訂單寫入資料庫...")
     
     while True:
+        # RPOP 從佇列尾端取出（main.py 用 LPUSH 推入，形成 FIFO）
         order_json = r.rpop("order_queue")
+
         if order_json:
             data = json.loads(order_json)
             db = SessionLocal()

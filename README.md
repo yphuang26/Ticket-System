@@ -57,7 +57,7 @@ docker compose up -d
 
 啟動後你將擁有：
 
-- FastAPI 服務：`http://localhost`
+- 頁面票數顯示：`http://localhost`
 - Prometheus：`http://localhost:9090`
 - Grafana：`http://localhost:3000`
 

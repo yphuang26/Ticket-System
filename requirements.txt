@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+aiofiles
 redis
 sqlalchemy
 psycopg2-binary

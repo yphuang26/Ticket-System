@@ -4,7 +4,7 @@ services:
     working_dir: /code
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     expose:
-      - "8000"
+      - "8000" # 只對內部開放，外部流量走 nginx
     depends_on:
       redis:
         condition: service_started
@@ -49,6 +49,7 @@ services:
     ports:
       - "5432:5432"
 
+  # 壓測工具，手動執行：docker compose run k6 run /code/scripts/k6/<script>.js
   k6:
     image: grafana/k6:latest
     volumes:
@@ -56,6 +57,7 @@ services:
     depends_on:
       - web
 
+  # --web.enable-remote-write-receiver 讓 k6 可以推送壓測指標進來
   prometheus:
     image: prom/prometheus:latest
     command:
