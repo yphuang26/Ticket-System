@@ -32,3 +32,11 @@ export function setup() {
 export default function () {
     runBuyFlowNginx();
 }
+
+export function handleSummary(data) {
+    return {
+        // k6 container 內 /code 對應專案根目錄，壓測結束後自動寫出 JSON
+        '/code/k6_summary.json': JSON.stringify(data, null, 2),
+        // 不覆寫 stdout → k6 仍然印出預設的文字摘要
+    };
+}

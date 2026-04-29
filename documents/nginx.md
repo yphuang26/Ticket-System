@@ -48,7 +48,7 @@ Nginx
 
 Nginx 會幫你分流流量，例如：
 
-- Round Robin（輪流
+- Round Robin（輪流）
 - IP Hash
 - Least Connections
 
@@ -87,3 +87,52 @@ server {
 
 - `/`: 回傳前端頁面
 - `/api`: 轉給 FastAPI
+
+---
+
+## 本專案的 Nginx 設定
+
+### 角色
+
+Client 的所有流量先經過 Nginx（port 80），再轉發給 FastAPI（port 8000）：
+
+```
+Client → Nginx :80 → FastAPI :8000
+```
+
+FastAPI 只對 Docker 內部網路開放（`expose`，不對外 `ports`），外部無法繞過 Nginx 直打後端。
+
+### Rate Limiting 設定（`nginx/default.conf`）
+
+```nginx
+# 以來源 IP 為單位，10 r/s，10MB 狀態記憶體（約可追蹤 16 萬個 IP）
+limit_req_zone $binary_remote_addr zone=per_ip_limit:10m rate=10r/s;
+
+server {
+    listen 80;
+
+    location / {
+        limit_req zone=per_ip_limit burst=20 nodelay;
+        limit_req_status 429;
+
+        proxy_pass http://web:8000;
+    }
+}
+```
+
+**參數說明**
+
+| 參數 | 值 | 說明 |
+| --- | --- | --- |
+| `rate=10r/s` | 10 req/s | 每個 IP 每秒最多通過 10 個請求 |
+| `burst=20` | 20 | 允許瞬間突發最多 20 個超出 rate 的請求 |
+| `nodelay` | — | 突發請求立即處理，不排隊等候；超過 burst 才拒絕 |
+| `limit_req_status 429` | 429 | 超限回傳 429 Too Many Requests（預設是 503） |
+
+**為何回傳 429 而不是 503？**
+
+503 代表「服務不可用」，語意上是後端出問題；429 代表「請求太頻繁」，正確反映是客戶端行為被限制，語意更精確，也方便 k6 在測試中區分「被限流」與「後端錯誤」。
+
+### 壓測下的行為
+
+k6 container 內所有 VU 共用同一來源 IP，因此 `rate=10r/s` 是對全部 100 VU 共享的，不是每 VU 各享 10 r/s。100 VU × 60s 的壓測，理論上限約 600 次通過（實測 620 次），其餘 ~111,962 次全數被 429 攔截。詳見 [k6.md](k6.md)。

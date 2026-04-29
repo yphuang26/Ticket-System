@@ -44,6 +44,10 @@ export default function () {
     runBuyFlowBackend();
 }
 
+export function handleSummary(data) {
+    return { '/code/k6_summary.json': JSON.stringify(data, null, 2) };
+}
+
 /** 壓測後驗證無超賣：剩餘庫存必須 >= 0 */
 export function teardown(data) {
     const baseUrl = __ENV.BASE_URL || 'http://web:8000';

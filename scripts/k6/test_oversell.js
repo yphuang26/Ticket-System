@@ -39,6 +39,10 @@ export default function () {
     runBuyFlowBackend(0); // 不 sleep，最大並發壓力
 }
 
+export function handleSummary(data) {
+    return { '/code/k6_summary.json': JSON.stringify(data, null, 2) };
+}
+
 export function teardown(data) {
     const baseUrl = __ENV.BASE_URL || 'http://web:8000';
     const res = http.get(`${baseUrl}/stock`);
