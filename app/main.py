@@ -42,13 +42,11 @@ async def reset_stock(stock: int = Query(default=10, ge=0)):
 
 @app.post("/buy")
 async def buy_ticket(user_id: str = "user_default"):
-    # 執行預載的 Lua 腳本 (確保原子性，EVALSHA 避免重複傳輸腳本)
-    result = _buy_script(keys=["ticket_stock"])
+    order_data = json.dumps({"user_id": user_id, "event": "concert_AAA"})
+    # DECR 與 LPUSH 在同一個 Lua script 內原子執行，不存在中間狀態
+    result = _buy_script(keys=["ticket_stock", "order_queue"], args=[order_data])
 
     if result == 1:
-        # 扣庫存成功：推入佇列，由 worker 非同步寫入 DB，不阻塞 API 回應
-        order_data = json.dumps({"user_id": user_id, "event": "concert_AAA"})
-        r.lpush("order_queue", order_data)
         logger.info("搶票成功", extra={"user_id": user_id})
         return {"status": "success", "message": "搶票成功，訂單處理中"}
     else:

@@ -15,13 +15,13 @@
 ## 系統設計與技術亮點
 
 - **Race Condition 解決方案（防止超賣）**
-  - 使用 **Redis Lua Script** 實作原子化扣庫存
-  - 所有搶票請求經過 Lua 腳本，確保**不會出現負庫存或重複賣票**
+  - 使用 **Redis Lua Script** 原子化執行扣庫存（DECR）與推入訂單佇列（LPUSH）
+  - 所有搶票請求經過 Lua 腳本，確保**不會出現負庫存、重複賣票，或庫存扣了但訂單未入佇列的中間狀態**
 
 - **非同步持久化（提升吞吐量）**
   - API 收到成功搶票請求後，只負責把訂單寫入 Redis `order_queue`
-  - **背景 worker** 從 queue 取出訂單，再寫入 PostgreSQL
-  - 達成**API 先回應，資料庫由背景非同步寫入**的解耦
+  - **背景 worker** 從 queue 取出訂單，再寫入 PostgreSQL，達成 **API 先回應，資料庫由背景非同步寫入**的解耦
+  - 寫入失敗時自動 retry 最多 3 次（exponential backoff），仍失敗則移至 `order_queue_failed` dead letter queue 保留，不遺失訂單
 
 - **監控與可觀測性 (Observability)**
   - 透過 `prometheus_fastapi_instrumentator` 自動導出 FastAPI 指標
@@ -38,7 +38,7 @@
   - `POST /buy`：搶票 API（呼叫 Redis Lua script 扣庫存 + 推入 `order_queue`）
   - `GET /stock`：查詢當前剩餘票數
 - **`app/worker.py`**：背景 worker
-  - 從 `order_queue` 消費訂單並寫入 PostgreSQL
+  - 從 `order_queue` 消費訂單並寫入 PostgreSQL；含 retry 機制與 dead letter queue（`order_queue_failed`）監控告警
 - **`scripts/k6/buy_flow.js`**：共用的 `/buy` 請求流程（供下列入口腳本 `import`）
 - **`scripts/k6/test_nginx_rate_limit.js`**：經 **Nginx** 壓測，驗證 `limit_req` / 429
 - **`scripts/k6/test_backend_capacity.js`**：直連 **web:8000**，測後端吞吐（不經 Nginx 限流）
